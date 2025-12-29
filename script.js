@@ -1,0 +1,169 @@
+document.addEventListener('DOMContentLoaded', () => {
+  const apiKey = 'ce9ee7b5f690fb62bdc571a939d1ca6f';
+
+  const cityInput = document.getElementById('cityInput');
+  const unitSelect = document.getElementById('unitSelect');
+  const searchBtn = document.getElementById('searchBtn');
+  const toggleView = document.getElementById('toggleView');
+  const weatherDiv = document.getElementById('weather');
+  const statusEl = document.getElementById('status');
+  const chartCanvas = document.getElementById('weatherChart');
+
+  let chart;
+  let isChartView = false;
+  let lastFetchKey = null;
+
+  /* =========================
+     1. USER PREFERENCES (localStorage)
+  ========================== */
+  const savedCity = localStorage.getItem('city');
+  const savedUnits = localStorage.getItem('units');
+
+  if (savedCity) cityInput.value = savedCity;
+  if (savedUnits) unitSelect.value = savedUnits;
+
+  /* =========================
+     2. EVENT LISTENERS
+  ========================== */
+  searchBtn.addEventListener('click', () => {
+    savePreferences();
+    fetchWeather();
+  });
+
+  toggleView.addEventListener('click', toggleDisplay);
+
+  /* =========================
+     3. SAVE USER SETTINGS
+  ========================== */
+  function savePreferences() {
+    localStorage.setItem('city', cityInput.value.trim());
+    localStorage.setItem('units', unitSelect.value);
+  }
+
+  /* =========================
+     4. FETCH WITH OPTIMIZATION + ERROR HANDLING
+  ========================== */
+  function fetchWeather() {
+    const city = cityInput.value.trim() || 'Dubai';
+    const units = unitSelect.value;
+
+    const fetchKey = `${city}_${units}`;
+
+    // Avoid redundant API calls
+    if (fetchKey === lastFetchKey) {
+      console.log('Using cached data – no new fetch');
+      return;
+    }
+
+    lastFetchKey = fetchKey;
+
+    weatherDiv.innerHTML = '';
+    statusEl.textContent = 'Loading weather data…';
+
+    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=${units}&appid=${apiKey}`;
+
+    fetch(url)
+      .then(res => {
+        if (res.status === 404) throw new Error('City not found');
+        if (res.status === 429) throw new Error('Rate limit exceeded');
+        if (!res.ok) throw new Error('Network error');
+        return res.json();
+      })
+      .then(data => {
+        statusEl.textContent = '';
+        renderWeatherList(data, units);
+        renderChart(data, units);
+      })
+      .catch(error => {
+        console.error(error);
+        handleError(error.message);
+      });
+  }
+
+  /* =========================
+     5. ERROR + FALLBACK STATES
+  ========================== */
+  function handleError(message) {
+    weatherDiv.innerHTML = '';
+    statusEl.textContent = '';
+
+    weatherDiv.innerHTML = `
+      <div class="weather-item">
+        ⚠️ ${message}. Please try again.
+      </div>
+    `;
+  }
+
+  /* =========================
+     6. LIST VIEW
+  ========================== */
+  function renderWeatherList(data, units) {
+    weatherDiv.innerHTML = '';
+
+    data.list.slice(0, 5).forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'weather-item';
+
+      div.innerHTML = `
+        <strong>${item.dt_txt}</strong>
+        <p>🌡 ${item.main.temp}° ${units === 'metric' ? 'C' : 'F'}</p>
+        <p>${item.weather[0].description}</p>
+      `;
+
+      weatherDiv.appendChild(div);
+    });
+  }
+
+  /* =========================
+     7. CHART VIEW
+  ========================== */
+  function renderChart(data, units) {
+    const labels = data.list.slice(0, 8).map(i => i.dt_txt);
+    const temps = data.list.slice(0, 8).map(i => i.main.temp);
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(chartCanvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: `Temperature (${units === 'metric' ? '°C' : '°F'})`,
+          data: temps,
+          borderWidth: 2
+        }]
+      }
+    });
+  }
+
+  /* =========================
+     8. TOGGLE LIST ↔ CHART
+  ========================== */
+  function toggleDisplay() {
+    isChartView = !isChartView;
+
+    weatherDiv.classList.toggle('hidden', isChartView);
+    chartCanvas.classList.toggle('hidden', !isChartView);
+
+    toggleView.textContent = isChartView
+      ? 'Show List'
+      : 'Show Chart';
+  }
+
+  /* =========================
+     9. A/B UI VARIATION (ENGAGEMENT TEST)
+  ========================== */
+  const variant = Math.random() > 0.5 ? 'A' : 'B';
+
+  if (variant === 'B') {
+    document.querySelector('h1').textContent += ' (Enhanced)';
+    console.log('UI Variant B active');
+  } else {
+    console.log('UI Variant A active');
+  }
+
+  /* =========================
+     10. INITIAL LOAD
+  ========================== */
+  fetchWeather();
+});

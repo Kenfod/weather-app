@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Weather App ☀️</h1>
+
+    <!-- User Inputs -->
+    <div class="controls">
+      <input id="cityInput" type="text" placeholder="Enter city name" />
+      
+      <select id="unitSelect">
+        <option value="metric">°C</option>
+        <option value="imperial">°F</option>
+      </select>
+
+      <button id="searchBtn">Search</button>
+
+      <button id="toggleView">Show Chart</button>
+
+      <p id="status" class="status"></p>
+
+    </div>
+
+    <!-- Weather Output -->
+    <div id="weather"></div>
+
+    <!-- Chart View -->
+    <canvas id="weatherChart" class="hidden"></canvas>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
