@@ -5,9 +5,11 @@ body {
 }
 
 .container {
-  max-width: 900px;
+  max-width: 500px;
   margin: auto;
   padding: 1rem;
+  text-align: center;
+  background: linear-gradient(135deg, #00feba, #e7e450);
 }
 
 h1 {
