@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let chart;
   let isChartView = false;
   let lastFetchKey = null;
+  let lastWeatherData = null;
+
 
   /* =========================
      1. USER PREFERENCES (localStorage)
@@ -71,8 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(data => {
         statusEl.textContent = '';
+        lastWeatherData = data;   // ✅ cache data
+        // renderWeatherList(data, units);
         renderWeatherList(data, units);
-        renderChart(data, units);
+
+        if (isChartView) {
+          renderChart(data, units);
+        }
       })
       .catch(error => {
         console.error(error);
@@ -148,6 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleView.textContent = isChartView
       ? 'Show List'
       : 'Show Chart';
+
+    // ✅ Render or resize chart only when visible
+    if (isChartView && lastWeatherData) {
+      renderChart(lastWeatherData, unitSelect.value);
+
+      // Force Chart.js resize after display
+      setTimeout(() => {
+        chart.resize();
+      }, 50);
+    }
   }
 
   /* =========================
