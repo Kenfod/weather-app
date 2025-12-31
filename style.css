@@ -1,6 +1,7 @@
 body {
   font-family: Arial, sans-serif;
-  margin: 0;
+  background: #9aa2a3;
+  margin: 10;
   padding: 0;
 }
 
@@ -10,12 +11,14 @@ body {
   padding: 1rem;
   text-align: center;
   background: linear-gradient(135deg, #00feba, #e7e450);
+  border-radius: 20px;
 }
 
 h1 {
   text-align: center;
 }
 
+/* Controls */
 .controls {
   display: flex;
   gap: 0.5rem;
@@ -30,6 +33,7 @@ input, select, button {
   cursor: pointer;
 }
 
+/* Weather list */
 #weather {
   margin-top: 1rem;
   display: flex;
@@ -43,10 +47,14 @@ input, select, button {
   border-radius: 6px;
 }
 
+/* Chart */
 canvas {
   margin-top: 1.5rem;
+  width: 100% !important;
+  height: 70vh !important;
 }
 
+/* Utility */
 .hidden {
   display: none;
 }
@@ -62,6 +70,7 @@ canvas {
   }
 }
 
+/* Status message */
 .status {
   text-align: center;
   margin-top: 0.5rem;

@@ -9,20 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusEl = document.getElementById('status');
   const chartCanvas = document.getElementById('weatherChart');
 
-  let chart;
+  let chart = null;
   let isChartView = false;
   let lastFetchKey = null;
   let lastWeatherData = null;
 
-
   /* =========================
      1. USER PREFERENCES (localStorage)
   ========================== */
-  const savedCity = localStorage.getItem('city');
-  const savedUnits = localStorage.getItem('units');
-
-  if (savedCity) cityInput.value = savedCity;
-  if (savedUnits) unitSelect.value = savedUnits;
+  cityInput.value = localStorage.getItem('city') || 'Dubai';
+  unitSelect.value = localStorage.getItem('units') || 'metric';
 
   /* =========================
      2. EVENT LISTENERS
@@ -48,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function fetchWeather() {
     const city = cityInput.value.trim() || 'Dubai';
     const units = unitSelect.value;
-
     const fetchKey = `${city}_${units}`;
 
     // Avoid redundant API calls
@@ -58,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     lastFetchKey = fetchKey;
-
     weatherDiv.innerHTML = '';
     statusEl.textContent = 'Loading weather data…';
 
@@ -73,32 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(data => {
         statusEl.textContent = '';
-        lastWeatherData = data;   // ✅ cache data
-        // renderWeatherList(data, units);
-        renderWeatherList(data, units);
+        lastWeatherData = data;
+
+        if (!isChartView) {
+          renderWeatherList(data, units);
+        }
 
         if (isChartView) {
-          renderChart(data, units);
+          renderChart(data, units)
         }
       })
-      .catch(error => {
-        console.error(error);
-        handleError(error.message);
-      });
-  }
+      .catch(error => handleError(error.message));
+      }
 
   /* =========================
      5. ERROR + FALLBACK STATES
   ========================== */
   function handleError(message) {
-    weatherDiv.innerHTML = '';
-    statusEl.textContent = '';
-
     weatherDiv.innerHTML = `
       <div class="weather-item">
         ⚠️ ${message}. Please try again.
       </div>
     `;
+     statusEl.textContent = '';
   }
 
   /* =========================
@@ -110,13 +101,11 @@ document.addEventListener('DOMContentLoaded', () => {
     data.list.slice(0, 5).forEach(item => {
       const div = document.createElement('div');
       div.className = 'weather-item';
-
       div.innerHTML = `
         <strong>${item.dt_txt}</strong>
         <p>🌡 ${item.main.temp}° ${units === 'metric' ? 'C' : 'F'}</p>
         <p>${item.weather[0].description}</p>
       `;
-
       weatherDiv.appendChild(div);
     });
   }
@@ -139,6 +128,10 @@ document.addEventListener('DOMContentLoaded', () => {
           data: temps,
           borderWidth: 2
         }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
       }
     });
   }
@@ -161,22 +154,16 @@ document.addEventListener('DOMContentLoaded', () => {
       renderChart(lastWeatherData, unitSelect.value);
 
       // Force Chart.js resize after display
-      setTimeout(() => {
-        chart.resize();
-      }, 50);
+      setTimeout(() => chart?.resize(), 50);
     }
   }
 
   /* =========================
      9. A/B UI VARIATION (ENGAGEMENT TEST)
   ========================== */
-  const variant = Math.random() > 0.5 ? 'A' : 'B';
-
-  if (variant === 'B') {
+  if (Math.random() > 0.5) {
     document.querySelector('h1').textContent += ' (Enhanced)';
-    console.log('UI Variant B active');
-  } else {
-    console.log('UI Variant A active');
+    console.log('UI Variant B');
   }
 
   /* =========================
