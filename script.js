@@ -8,14 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const weatherDiv = document.getElementById('weather');
   const statusEl = document.getElementById('status');
   const chartCanvas = document.getElementById('weatherChart');
+  const cityNameEl = document.getElementById('cityName');
 
   let chart = null;
   let isChartView = false; 
   let lastFetchKey = null;
   let lastWeatherData = null;
+  let lastTimezoneOffset = 0;
 
   /* =========================
-      1. PREFERENCES & ERROR HANDLING
+      1. INITIALIZATION & PREFERENCES
   ========================== */
   cityInput.value = localStorage.getItem('city') || 'Dubai';
   unitSelect.value = localStorage.getItem('units') || 'metric';
@@ -40,20 +42,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const unitLabel = units === 'metric' ? '°C' : '°F';
 
     data.list.slice(0, 5).forEach(item => {
+
+      // Calculate local time: (UTC timestamp + offset) * 1000 to get milliseconds
+      const localDate = new Date((item.dt + lastTimezoneOffset) * 1000);
+    
+      // 2. Get the Day Name (e.g., "Monday")
+      // We use 'UTC' as the timezone here because we already manually applied the offset
+      const dayName = localDate.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+      
+      // We use getUTC methods because the offset is already added to the time
+      const hours = localDate.getUTCHours().toString().padStart(2, '0');
+      const minutes = localDate.getUTCMinutes().toString().padStart(2, '0');
+      const localTime = `${hours}:${minutes}`;
+
+      // Get the icon code from the API (e.g., "01d", "04n")
+      const iconCode = item.weather[0].icon;
+      // Construct the URL for the icon
+      const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+
       const div = document.createElement('div');
       div.className = 'weather-item';
       div.innerHTML = `
-        <strong>${item.dt_txt}</strong>
+        <span class="day-label">${dayName}</span>
+        <strong>${localTime}</strong>
+        <img src="${iconUrl}" alt="${item.weather[0].description}" class="weather-icon" />
         <p>🌡 ${Math.round(item.main.temp)}${unitLabel}</p>
-        <p style="font-size: 0.8rem;">${item.weather[0].description}</p>
+        <p class="desc">${item.weather[0].description}</p>
       `;
       weatherDiv.appendChild(div);
     });
   }
 
   // This draws the chart on the canvas
-  function renderChart(data, units) {
-    const labels = data.list.slice(0, 8).map(i => i.dt_txt.split(' ')[1].substring(0, 5));
+    function renderChart(data, units) {
+      const labels = data.list.slice(0, 8).map(item => {
+      const localDate = new Date((item.dt + lastTimezoneOffset) * 1000);
+      const hours = localDate.getUTCHours().toString().padStart(2, '0');
+      const minutes = localDate.getUTCMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    });
+
     const temps = data.list.slice(0, 8).map(i => i.main.temp);
 
     // If a chart already exists, we must destroy it before drawing a new one
@@ -91,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const units = unitSelect.value;
     const fetchKey = `${city}_${units}`;
 
+    // Optimization: avoid API calls for the same search
     if (fetchKey === lastFetchKey && lastWeatherData) return;
 
     lastFetchKey = fetchKey;
@@ -106,13 +135,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         statusEl.textContent = '';
         lastWeatherData = data;
+        lastTimezoneOffset = data.city.timezone; // Save timezone to global variable
 
-        // Render BOTH immediately. CSS hides the chart if needed.
+        // Update the City Name Display
+        cityNameEl.textContent = `Weather in ${data.city.name}, ${data.city.country}`;
+
+        // Pass the offset to the render functions
         renderWeatherList(data, units);
         renderChart(data, units);
 
         // Keep chart visibility in sync with the button state
         chartCanvas.classList.toggle('hidden', !isChartView);
+
       })
       .catch(error => handleError(error.message));
   }
@@ -126,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update the button text
     toggleView.textContent = isChartView ? 'Hide Chart' : 'Show Chart';
 
-    // Chart.js needs a resize call when it becomes visible
+    // Chart.js resize fix for hidden elements
     if (isChartView && chart) {
       setTimeout(() => chart.resize(), 50);
     }
